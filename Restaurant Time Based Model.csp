@@ -1,0 +1,372 @@
+﻿/*
+ * Darry
+ * Restaurant Time based Model
+ * 
+ * Simulating queuing -> seated
+ * 				-> eating -> paying -> leaving
+ *
+ *
+ * Able to calculate the minimum time required 
+ * for all customers to queue ->* leave
+ *
+ * Able to calculate if the number of customers
+ * that can be served in the Targeted Time.
+ * === To aid managers KPI planning
+ *
+ * Able to calculate if the number of Staff
+ * is in redundancy.
+ * === To aid managers in staffing plans
+ *
+ */
+ 
+#import "PAT.Lib.Queue";
+
+//
+//==== Number of Customers ====================================
+//
+#define N 60;
+
+//
+//==== Number of Staff ========================================
+//
+#define M 6;
+
+//
+//==== Time Constants =========================================
+//
+#define TARGET_TIME 68;
+#define TIME_ASSIGN_TABLE 1;
+#define TIME_EATING 6;
+#define TIME_BILLING 2;
+
+//
+//==== Customer Positions =====================================
+//
+enum {
+	CUS_IN_QUEUE, 
+	CUS_WALKING_TO_TABLE, 
+	CUS_EATING, 
+	CUS_BILL, 
+	CUS_PAYING_BILL,
+	CUS_LEFT_RESTAURANT
+};
+
+//
+//==== Staff Call Events ======================================
+//
+enum {CALL_FREE, CALL_QUEUE, CALL_BILL};
+
+//
+//==== Golbal timer variable ==================================
+//
+var timer;
+
+//
+//==== Queue simulations ======================================
+//
+var<Queue> queue;
+var<Queue> queue_bill;
+var<Queue> queue_staff;
+
+//
+//==== Customer variables =====================================
+//
+var cus_pos[N+1];
+var cus_data[N+1];
+
+//
+//==== Staff variables ========================================
+//
+var staff_has_job[M+1];
+var staff_job_data[M+1][2];
+var staff_has_been_activiated[M+1]; // Track staff of at least 
+									// one activation.
+
+enum {REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
+var redundancy_staff = REDUNDANT_CHECKING;
+var redundant_staff_count = 0;
+
+//
+//==== Number of customer served ==============================
+//
+var cus_served;
+
+//
+//==== Flags ==================================================
+//
+var timer_exceeded = false; //signal golbal timer exceeded TARGET_TIME
+var served_all_customers = false;
+
+
+Restaurant() = Init(); Restaurant_Control();
+
+Restaurant_Control() = Processes(); Timer(); 
+	if(timer_exceeded || cus_served == N) 
+	{
+		check_redundant_staff {
+			
+			var i = 1;
+			var has_redundant_staff = false;
+			
+			while ( i <= M ) {
+				if ( staff_has_been_activiated[i] == 0 )
+				{
+					if (!has_redundant_staff) 
+					{
+						has_redundant_staff = true;
+					}
+					redundant_staff_count++;
+				}
+				i++;
+			}
+			
+			if (has_redundant_staff)
+			{
+				redundancy_staff = REDUNDANT;
+			}
+			else
+			{
+				redundancy_staff = REDUNDANT_NO;
+			}
+		} 
+		-> Restaurant()
+	} 
+	else 
+	{
+		Restaurant_Control()
+	};
+	
+	
+Init() = initialization {
+	
+	timer_exceeded = false;
+	served_all_customers = false;
+	
+	timer = 0;	
+	cus_served = 0;
+	
+	redundancy_staff = REDUNDANT_CHECKING;
+	redundant_staff_count = 0;
+	
+	queue.Clear();
+	queue_bill.Clear();
+	queue_staff.Clear();
+	
+	var i=1;
+	while( i <= M ) {
+		staff_has_job[i] = CALL_FREE;
+		staff_job_data[i][0] = 0;
+		staff_job_data[i][1] = 0;
+		staff_has_been_activiated[i] = 0;
+		i++;
+	}
+	
+	i = 1;
+	while( i <= N ) {
+		queue.Enqueue(i);
+		cus_pos[i] = CUS_IN_QUEUE;
+		cus_data[i] = 0;
+		i++;
+	}
+	
+	i = 1;
+	while( i <= M ) {
+		queue_staff.Enqueue(i);
+		i++;
+	}
+	
+} -> Skip();
+
+
+Timer() = Timer_Check(); time.timer+1{timer++;} -> Skip();
+
+Timer_Check() = 
+if(timer >= TARGET_TIME && test_with_target_time) 
+{
+	{timer_exceeded = true;} -> Skip()
+}
+else if (cus_served == N) 
+{
+	{served_all_customers = true;} -> Skip()
+};
+
+Processes() = Staff_Control(); Cus_Eating();
+
+Staff_Control() = Check_Queue(); Check_Bill(); Call_staffs();
+
+Check_Queue() = 
+if (queue.Count() > 0) {
+	check_queue {
+		var i = 1;
+		var flag_found_staff = false;
+		while(i < M+1 && !flag_found_staff) 
+		{  
+			if( staff_has_job[i] == CALL_FREE )
+			{
+				staff_has_job[i] = CALL_QUEUE;
+				flag_found_staff = true;
+			}
+			i++;
+		}
+	} -> Skip()
+};
+
+Check_Bill() = 
+if (queue_bill.Count() > 0) {
+	check_queue_bill {
+		var i = 1;
+		var flag_found_staff = false;
+		while(i < M+1 && !flag_found_staff) 
+		{  
+			if( staff_has_job[i] == CALL_FREE )
+			{
+				staff_has_job[i] = CALL_BILL;
+				staff_has_been_activiated[i] = 1;
+				flag_found_staff = true;
+			}
+			i++;
+		}
+	} -> Skip()
+};
+
+Call_staffs() = (||| x:{1..M}@Staff(x));
+
+
+Staff(x) = if(staff_has_job[x] == CALL_QUEUE) 
+{ 
+	if (staff_job_data[x][0] == 0) 
+	{
+		serve_cus_seat {
+			var cus = queue.First();
+			staff_job_data[x][0] = cus;
+			staff_job_data[x][1] = TIME_ASSIGN_TABLE;
+			queue.Dequeue(); 
+			cus_pos[cus] = CUS_WALKING_TO_TABLE;
+		} -> Skip() 
+	}
+	else
+	{
+		serve_cus_seat_end {
+			staff_job_data[x][1]--;
+			if (staff_job_data[x][1] == 0) 
+			{
+				var cus = staff_job_data[x][0];
+				staff_job_data[x][0] = 0;
+				staff_has_job[x] = CALL_FREE;
+				cus_pos[cus] = CUS_EATING;
+				cus_data[cus] = TIME_EATING;
+			}
+		} -> Skip()
+	}
+}
+else if(staff_has_job[x] == CALL_BILL) 
+{
+	if (staff_job_data[x][0] == 0) 
+	{
+		serve_cus_bill {
+			var cus = queue_bill.First();
+			staff_job_data[x][0] = cus;
+			staff_job_data[x][1] = TIME_BILLING;
+			queue_bill.Dequeue(); 
+			cus_pos[cus] = CUS_PAYING_BILL;
+		} -> Skip() 
+	}
+	else
+	{
+		serve_cus_bill_end {
+			staff_job_data[x][1]--;
+			if (staff_job_data[x][1] == 0) 
+			{
+				var cus = staff_job_data[x][0];
+				staff_job_data[x][0] = 0;
+				staff_has_job[x] = CALL_FREE;
+				cus_pos[x] = CUS_LEFT_RESTAURANT;
+				cus_served++;
+			}
+		} -> Skip()
+	}
+};
+
+Cus_Eating() = 
+{
+	var i = 0;
+	while( i < N+1 )
+	{
+		if ( cus_pos[i] == CUS_EATING )
+		{
+			cus_data[i]--;
+			if ( cus_data[i] <= 0 )
+			{
+				cus_data[i] = 0;
+				cus_pos[i] = CUS_BILL;
+				queue_bill.Enqueue(i);
+			}
+		}
+		i++;
+	}
+} 
+-> Skip();
+
+
+//
+// Alternate systems
+//
+var test_with_target_time = true;
+Restaurant_No_Time_Target() = atomic{ 
+	{ test_with_target_time = false } ->Skip() 
+}; Restaurant();
+
+
+//
+// Goal Definitions
+//
+#define goal_timer_reach_N_minus_1 (timer > N);
+#define goal_served_all_customers (cus_served == N);
+#define goal_served_all_customers_timed (cus_served == N && timer <= TARGET_TIME);
+#define goal_target_time (timer <= TARGET_TIME);
+#define goal_redundant_staff_none (redundancy_staff == REDUNDANT_NO && redundancy_staff != REDUNDANT_CHECKING);
+#define goal_redundant_staff (redundancy_staff == REDUNDANT && redundancy_staff != REDUNDANT_CHECKING);
+
+
+#assert Restaurant() deadlockfree;
+
+//
+// Asserts that the global timer reaches N-1
+//
+#assert Restaurant() reaches goal_timer_reach_N_minus_1;
+
+//
+// Asserts that all customers have been served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_served_all_customers_timed;
+
+//
+// Asserts that all customers have been served without time constrains.
+//
+#assert Restaurant_No_Time_Target() reaches goal_served_all_customers;
+
+//
+// Gets the amount of time to serve all customers.
+//
+#assert Restaurant() reaches goal_served_all_customers with min(timer);
+
+//
+// Gets the maximum number of customers served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_target_time with max(cus_served);
+
+//
+// Asserts that the staff is NOT in redundancy
+//
+#assert Restaurant() reaches goal_redundant_staff_none;
+
+//
+// Asserts that the staff is in redundancy
+//
+#assert Restaurant() reaches goal_redundant_staff;
+
+//
+// Gets how many staff is redundant
+//
+#assert Restaurant() reaches goal_redundant_staff with min(redundant_staff_count);
+
