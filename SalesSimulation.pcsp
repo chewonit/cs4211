@@ -1,0 +1,34 @@
+﻿enum{DishA, DishB, DishC};
+
+#define customer 4;
+var order = 0;
+var sales = 0;
+var terminated = false;
+var index = 0;
+
+
+Customer() = pcase {
+       1 : cus.DishA{order = DishA} -> Skip
+       1 : cus.DishB{order = DishB} -> Skip
+       1 : cus.DishC{order = DishC} -> Skip
+};
+
+MakeOrder() = { 
+if(order == DishA)
+	sales = 1 + sales;
+else if(order == DishB)
+	sales = 2 + sales;
+else if(order == DishC)
+	sales = 3 + sales;
+	
+	index++;
+}->Cus_Process();
+
+
+Cus_Choose_Dish() = Customer(); MakeOrder();
+
+
+Cus_Process() = if(index < customer){Cus_Choose_Dish() };
+
+#define goal sales >= 5;
+#assert Cus_Process reaches goal with prob;
