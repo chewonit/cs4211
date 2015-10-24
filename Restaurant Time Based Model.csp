@@ -229,62 +229,63 @@ if (queue_bill.Count() > 0) {
 	} -> Skip()
 };
 
-Call_staffs() = (||| x:{1..M}@Staff(x));
+Call_staffs() = ( ||| x:{1..M}@Staff(x) );
 
 
-Staff(x) = if(staff_has_job[x] == CALL_QUEUE) 
-{ 
-	if (staff_job_data[x][0] == 0) 
-	{
-		serve_cus_seat {
-			var cus = queue.First();
-			staff_job_data[x][0] = cus;
-			staff_job_data[x][1] = TIME_ASSIGN_TABLE;
-			queue.Dequeue(); 
-			cus_pos[cus] = CUS_WALKING_TO_TABLE;
-		} -> Skip() 
-	}
-	else
-	{
-		serve_cus_seat_end {
-			staff_job_data[x][1]--;
-			if (staff_job_data[x][1] == 0) 
-			{
-				var cus = staff_job_data[x][0];
-				staff_job_data[x][0] = 0;
-				staff_has_job[x] = CALL_FREE;
-				cus_pos[cus] = CUS_EATING;
-				cus_data[cus] = TIME_EATING;
-			}
-		} -> Skip()
-	}
-}
-else if(staff_has_job[x] == CALL_BILL) 
-{
-	if (staff_job_data[x][0] == 0) 
-	{
-		serve_cus_bill {
-			var cus = queue_bill.First();
-			staff_job_data[x][0] = cus;
-			staff_job_data[x][1] = TIME_BILLING;
-			queue_bill.Dequeue(); 
-			cus_pos[cus] = CUS_PAYING_BILL;
-		} -> Skip() 
-	}
-	else
-	{
-		serve_cus_bill_end {
-			staff_job_data[x][1]--;
-			if (staff_job_data[x][1] == 0) 
-			{
-				var cus = staff_job_data[x][0];
-				staff_job_data[x][0] = 0;
-				staff_has_job[x] = CALL_FREE;
-				cus_pos[x] = CUS_LEFT_RESTAURANT;
-				cus_served++;
-			}
-		} -> Skip()
-	}
+Staff(x) = 
+case {
+	
+	staff_has_job[x] == CALL_QUEUE:
+		if (staff_job_data[x][0] == 0) 
+		{
+			serve_cus_seat {
+				var cus = queue.First();
+				staff_job_data[x][0] = cus;
+				staff_job_data[x][1] = TIME_ASSIGN_TABLE;
+				queue.Dequeue(); 
+				cus_pos[cus] = CUS_WALKING_TO_TABLE;
+			} -> Skip() 
+		}
+		else
+		{
+			serve_cus_seat_end {
+				staff_job_data[x][1]--;
+				if (staff_job_data[x][1] == 0) 
+				{
+					var cus = staff_job_data[x][0];
+					staff_job_data[x][0] = 0;
+					staff_has_job[x] = CALL_FREE;
+					cus_pos[cus] = CUS_EATING;
+					cus_data[cus] = TIME_EATING;
+				}
+			} -> Skip()
+		}
+	
+	staff_has_job[x] == CALL_BILL:
+		if (staff_job_data[x][0] == 0) 
+		{
+			serve_cus_bill {
+				var cus = queue_bill.First();
+				staff_job_data[x][0] = cus;
+				staff_job_data[x][1] = TIME_BILLING;
+				queue_bill.Dequeue(); 
+				cus_pos[cus] = CUS_PAYING_BILL;
+			} -> Skip() 
+		}
+		else
+		{
+			serve_cus_bill_end {
+				staff_job_data[x][1]--;
+				if (staff_job_data[x][1] == 0) 
+				{
+					var cus = staff_job_data[x][0];
+					staff_job_data[x][0] = 0;
+					staff_has_job[x] = CALL_FREE;
+					cus_pos[x] = CUS_LEFT_RESTAURANT;
+					cus_served++;
+				}
+			} -> Skip()
+		}
 };
 
 Cus_Eating() = 
