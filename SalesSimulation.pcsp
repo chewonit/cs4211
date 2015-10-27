@@ -1,6 +1,7 @@
 ﻿enum{DishA, DishB, DishC};
 
 #define customer 4;
+var price = [1,2,3];
 var order = 0;
 var sales = 0;
 var terminated = false;
@@ -15,12 +16,11 @@ Customer() = pcase {
 
 MakeOrder() = { 
 if(order == DishA)
-	sales = 1 + sales;
+	sales = sales + price[DishA];
 else if(order == DishB)
-	sales = 2 + sales;
+	sales = sales + price[DishB] +;
 else if(order == DishC)
-	sales = 3 + sales;
-	
+	sales = price[DishC] + sales;
 	index++;
 }->Cus_Process();
 
