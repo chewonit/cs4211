@@ -1,0 +1,22 @@
+﻿#define NUM_CHEFS 2;
+#define NUM_ORDERS 20;
+#define COOKING_TIME 5;
+#define MAX_ORDERS_QUEUED 3;
+
+var chefs_occupied = 0;
+var global_time = 0;
+var orders_queued = 0;
+var total_orders = NUM_ORDERS;
+
+
+Cook() = cook{chefs_occupied++;} -> Wait[COOKING_TIME]; FinishCook;
+FinishCook() = if(orders_queued>0){finishCook{chefs_occupied--; orders_queued--;}-> Skip} else {finishCook{chefs_occupied--; total_orders--;} -> Kitchen};
+QueueOrder() = queueOrder{total_orders--; orders_queued++;} -> Skip;
+OrderArrive() = if(chefs_occupied==NUM_CHEFS) {QueueOrder} else {Cook};
+
+Kitchen() = if(total_orders>0){OrderArrive} else {Skip};
+
+		  	
+#assert Kitchen deadlockfree;
+#define overflow (orders_queued > 10);
+#assert Kitchen reaches overflow;
