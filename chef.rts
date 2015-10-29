@@ -1,22 +1,33 @@
-﻿#define NUM_CHEFS 2;
+﻿#import "PAT.Lib.Queue";
+
+#define NUM_CHEFS 2;
 #define NUM_ORDERS 20;
-#define COOKING_TIME 5;
+#define COOKING_TIME 2;
 #define MAX_ORDERS_QUEUED 3;
+
+var<Queue> order_queue;
 
 var chefs_occupied = 0;
 var global_time = 0;
-var orders_queued = 0;
 var total_orders = NUM_ORDERS;
 
 
-Cook() = cook{chefs_occupied++;} -> Wait[COOKING_TIME]; FinishCook;
-FinishCook() = atomic{if(orders_queued>0){finishCook{chefs_occupied--; orders_queued--;}-> Skip} else {finishCook{chefs_occupied--; total_orders--;} -> Kitchen}};
-QueueOrder() = queueOrder{total_orders--; orders_queued++;} -> Skip;
-OrderArrive() = atomic{if(chefs_occupied==NUM_CHEFS) {QueueOrder} else {Cook}};
+channel c_order_arrived 0;
+channel c_order_hold 0;
+channel c_order_proceed 0;
+channel c_order_cooked 0;
 
-Kitchen() = atomic{if(total_orders>0){OrderArrive} else {Skip}};
-System() = Kitchen() ||| OrderArrive();
+Kitchen() = atomic{c_order_arrived?i -> QueueOrder(i)};
+			
+Cook(i) = cook{chefs_occupied++;} -> Wait[COOKING_TIME]; FinishCook(i);
+FinishCook(i) = atomic{finishCook{chefs_occupied--;} -> OrderArrive(i)};
+QueueOrder(i) = atomic{queueOrder{total_orders--;} -> Skip};
+HoldOrder(i) = c_order_proceed?i -> Cook(i);
+OrderArrive(i) = atomic{c_order_arrived!i -> (Cook(i)[](c_order_hold?i->HoldOrder(i)))};
+
+
+System() =  (||| x:{0..NUM_ORDERS-1}@OrderArrive(x)) ||| Kitchen() ;
 		  	
 #assert System deadlockfree;
-#define overflow (orders_queued > 10);
+#define overflow (order_queue.Count() > 10);
 #assert System reaches overflow;
