@@ -50,6 +50,14 @@
 #define RESTAURANT_SEATS 100;
 
 //
+//==== Time Constants =========================================
+//
+#define TARGET_TIME 100;
+#define TIME_ASSIGN_TABLE 1;
+#define TIME_EATING 10;
+#define TIME_BILLING 2;
+
+//
 //==== Customer Queue Probability =============================
 //
 // Defines the probability of which 2, 3, or 4 customers 
@@ -71,14 +79,6 @@ var prob_cus_join_queue[3] = [1,1,1];
 //=============================================================
 
 
-
-//
-//==== Time Constants =========================================
-//
-#define TARGET_TIME 100;
-#define TIME_ASSIGN_TABLE 1;
-#define TIME_EATING 6;
-#define TIME_BILLING 2;
 
 //
 //==== Golbal Timer Variable ==================================
@@ -191,6 +191,8 @@ Init() = initialization
 		redundancy_staff = REDUNDANT_CHECKING;
 		redundant_staff_count = 0;
 		
+		cus_queue_join_count = 0;
+		
 		queue.Clear();
 		queue_bill.Clear();
 		queue_staff.Clear();
@@ -214,18 +216,18 @@ Init() = initialization
 			//queue.Enqueue(i);
 			cus_pos[i] = CUS_IN_QUEUE;
 			cus_data[i] = 0;
-			i++;
+			i ++;
 		}
 		
 		i = 1;
 		while( i <= M ) 
 		{
 			queue_staff.Enqueue(i);
-			i++;
+			i ++;
 		}
 		
 	} -> Skip();
-
+	
 
 //
 // Restaurant Control
