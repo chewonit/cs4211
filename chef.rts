@@ -10,13 +10,13 @@ var total_orders = NUM_ORDERS;
 
 
 Cook() = cook{chefs_occupied++;} -> Wait[COOKING_TIME]; FinishCook;
-FinishCook() = if(orders_queued>0){finishCook{chefs_occupied--; orders_queued--;}-> Skip} else {finishCook{chefs_occupied--; total_orders--;} -> Kitchen};
+FinishCook() = atomic{if(orders_queued>0){finishCook{chefs_occupied--; orders_queued--;}-> Skip} else {finishCook{chefs_occupied--; total_orders--;} -> Kitchen}};
 QueueOrder() = queueOrder{total_orders--; orders_queued++;} -> Skip;
-OrderArrive() = if(chefs_occupied==NUM_CHEFS) {QueueOrder} else {Cook};
+OrderArrive() = atomic{if(chefs_occupied==NUM_CHEFS) {QueueOrder} else {Cook}};
 
-Kitchen() = if(total_orders>0){OrderArrive} else {Skip};
-
+Kitchen() = atomic{if(total_orders>0){OrderArrive} else {Skip}};
+System() = Kitchen() ||| OrderArrive();
 		  	
-#assert Kitchen deadlockfree;
+#assert System deadlockfree;
 #define overflow (orders_queued > 10);
-#assert Kitchen reaches overflow;
+#assert System reaches overflow;
