@@ -29,6 +29,7 @@
  */
  
 #import "PAT.Lib.Queue";
+#import "lib\RandomNumber";
 
 
 //=============================================================
@@ -75,6 +76,16 @@ var prob_cus_join_queue[3] = [1,1,1];
 #define STAFF_MAX_ASSIGN_QUEUE 2;
 
 //
+//==== Non Deterministic Model ================================
+//
+// Defines a duration range that the customer may take to dine
+// in the resturant.
+//
+#define DETERMINISTIC true;
+#define TIME_EATING_MIN 4;
+#define TIME_EATING_MAX 10;
+
+//
 //==== END User Configurations ================================
 //=============================================================
 
@@ -109,6 +120,7 @@ enum {
 //
 var cus_pos[N+1];
 var cus_data[N+1];
+var cus_duration_eat[N+1];
 
 //
 //==== Customer Queue Variables ===============================
@@ -156,7 +168,7 @@ var cus_served;
 //
 var timer_exceeded = false; //signal golbal timer exceeded TARGET_TIME
 var served_all_customers = false;
-
+var first_run = false;
 
 
 //
@@ -170,6 +182,7 @@ var served_all_customers = false;
 // Initialized the system and then hands control to Restaurant_Control.
 //
 Restaurant() = Init(); Restaurant_Control();
+
 
 //
 // Initialization
@@ -204,6 +217,7 @@ Init() = initialization
 			staff_job_data[i][STAFF_JOB_DATA_CUS_ID] = 0;
 			staff_job_data[i][STAFF_JOB_DATA_DURATION] = 0;
 			staff_has_been_activiated[i] = 0;
+			queue_staff.Enqueue(i);
 			i++;
 		}
 		
@@ -216,15 +230,22 @@ Init() = initialization
 			//queue.Enqueue(i);
 			cus_pos[i] = CUS_IN_QUEUE;
 			cus_data[i] = 0;
+			
+			if (!first_run) 
+			{
+				var a = TIME_EATING;
+				var b = TIME_EATING;
+				if ( !DETERMINISTIC )
+				{
+					a = TIME_EATING_MIN;
+					b = TIME_EATING_MAX;
+				}
+				cus_duration_eat[i] = call(randomNumber, a, b);
+			}
 			i ++;
 		}
 		
-		i = 1;
-		while( i <= M ) 
-		{
-			queue_staff.Enqueue(i);
-			i ++;
-		}
+		first_run = true;
 		
 	} -> Skip();
 	
@@ -496,7 +517,8 @@ case {
 					staff_has_job[x] = CALL_FREE;
 					cus_pos[cus] = CUS_EATING;
 					cus_data[cus] = TIME_EATING;
-				
+					cus_data[cus] = cus_duration_eat[cus];
+					
 					staff_assigned_to_queue --;
 				}
 			} -> Skip()
