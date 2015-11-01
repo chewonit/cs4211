@@ -28,7 +28,7 @@ Kitchen = if(chef_occupied_queue.Count()==3)
 		  };
 			
 Cook(i) = tau{chef_occupied_queue.Enqueue(i)} -> Wait[COOKING_TIME]; FinishCook(i);
-FinishCook(i) = tau{chef_occupied_queue.Dequeue(i)} -> OrderArrive(i);
+FinishCook(i) = tau{chef_occupied_queue.Dequeue()} -> OrderArrive(i);
 HoldOrder(i) = c_order_proceed?i -> Cook(i);
 OrderArrive(i) = Wait[ORDER_ARRIVAL_INTERVAL]; c_order_arrived!i -> (Cook(i)) [] (c_order_hold?i -> HoldOrder(i));
 
