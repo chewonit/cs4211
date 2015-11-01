@@ -1,0 +1,65 @@
+﻿//
+// Initialization for
+// TimedAndProbabilityModel.pcsp
+// 
+Init() = initialization 
+	{
+		timer_exceeded = false;
+		served_all_customers = false;
+		
+		timer = 0;	
+		cus_served = 0;
+		
+		restaurant_seats = RESTAURANT_SEATS;
+		restaurant_seats_result = 0;
+		
+		staff_assigned_to_queue = 0;
+		staff_assigned_to_bill = 0;
+		
+		redundancy_staff = REDUNDANT_CHECKING;
+		redundant_staff_count = 0;
+		
+		cus_queue_join_count = 0;
+		
+		queue.Clear();
+		queue_bill.Clear();
+		queue_staff.Clear();
+		
+		var i=1;
+		while( i <= M ) 
+		{
+			staff_has_job[i] = CALL_FREE;
+			staff_job_data[i][STAFF_JOB_DATA_CUS_ID] = 0;
+			staff_job_data[i][STAFF_JOB_DATA_DURATION] = 0;
+			staff_has_been_activiated[i] = 0;
+			queue_staff.Enqueue(i);
+			i++;
+		}
+		
+		i = 1;
+		while( i <= N ) 
+		{
+			// Initialize to empty queue.
+			// Customers will join the queue later
+			// accroding to the probabilities given.
+			//queue.Enqueue(i);
+			cus_pos[i] = CUS_IN_QUEUE;
+			cus_data[i] = 0;
+			
+			if (!first_run) 
+			{
+				var a = TIME_EATING;
+				var b = TIME_EATING;
+				if ( !DETERMINISTIC )
+				{
+					a = TIME_EATING_MIN;
+					b = TIME_EATING_MAX;
+				}
+				cus_duration_eat[i] = call(randomNumber, a, b);
+			}
+			i ++;
+		}
+		
+		first_run = true;
+		
+	} -> Skip();

@@ -1,0 +1,181 @@
+﻿//
+// Staff Processes for
+// TimedAndProbabilityModel.pcsp
+// 
+
+//
+// Staff Control Process
+// 
+// This is the main process that controls the flow of staffs.
+//
+Staff_Control() = Check_Queue(); Check_Bill(); Call_staffs();
+
+
+//
+// Staff - Check Queue
+// 
+// Simulates staff assignment to attend to the customer 
+// at the queue and assign them a seating.
+//
+// Users can specify a maximum number of staff to be assigned 
+// to customers at the queue via STAFF_MAX_ASSIGN_QUEUE. 
+// This allows for better planning and variation in strategy.
+//
+// Multiple staffs can be activated. One to attend to each customer
+// at the queue.
+//
+Check_Queue() = 
+if (queue.Count() > 0) 
+{
+	check_queue {
+		
+		var _has_free_staff = true;
+		
+		while ( queue.Count() > 0 
+			&& _has_free_staff 
+			&& staff_assigned_to_queue < STAFF_MAX_ASSIGN_QUEUE
+			&& restaurant_seats > 0 )
+		{
+			var i = 1;
+			var flag_found_staff = false;
+			while( i < M+1 && !flag_found_staff ) 
+			{  
+				if( staff_has_job[i] == CALL_FREE )
+				{
+					staff_has_job[i] = CALL_QUEUE;
+					flag_found_staff = true;
+					
+					var cus = queue.First();
+					staff_job_data[i][STAFF_JOB_DATA_CUS_ID] = cus;
+					staff_job_data[i][STAFF_JOB_DATA_DURATION] = TIME_ASSIGN_TABLE;
+					queue.Dequeue(); 
+					cus_pos[cus] = CUS_WALKING_TO_TABLE;
+					
+					staff_assigned_to_queue ++;
+					
+					restaurant_seats --;
+					restaurant_seats_result ++;
+				}
+				i ++;
+			}
+			_has_free_staff = flag_found_staff;
+		}
+	} -> Skip()
+};
+
+//
+// Staff - Check Bill
+// 
+// Simulates staff assignment to attend to the customer 
+// who is ready to make payment.
+//
+// Multiple staffs can be activated. One to attend to each customer
+// who is ready to make payment.
+//
+Check_Bill() = 
+if (queue_bill.Count() > 0) 
+{
+	check_queue_bill {
+			
+		var _has_free_staff = true;
+			
+		while ( queue_bill.Count() > 0 && _has_free_staff )
+		{
+			var i = 1;
+			var flag_found_staff = false;
+			while(i < M+1 && !flag_found_staff) 
+			{  
+				if( staff_has_job[i] == CALL_FREE )
+				{
+					staff_has_job[i] = CALL_BILL;
+					staff_has_been_activiated[i] = 1;
+					flag_found_staff = true;
+					
+					var cus = queue_bill.First();
+					staff_job_data[i][STAFF_JOB_DATA_CUS_ID] = cus;
+					staff_job_data[i][STAFF_JOB_DATA_DURATION] = TIME_BILLING;
+					queue_bill.Dequeue(); 
+					cus_pos[cus] = CUS_PAYING_BILL;
+				}
+				i ++;
+			}
+			
+			_has_free_staff = flag_found_staff;
+		}
+	} -> Skip()
+};
+
+
+//
+// Call Staff
+// 
+// Simulates the actions of the staff which will take time.
+//
+Call_staffs() = Call_staffs_Control();
+
+Call_staffs_Control() = 
+if (call_staffs_control_index <= M) 
+{
+	call_staffs.call_staffs_control_index
+	{
+		call_staffs_control_index ++;
+	} -> Call_staffs_Control2(call_staffs_control_index-1)
+}
+else 
+{
+	call_staffs_reset_index
+	{
+		call_staffs_control_index = 1;
+	} -> Skip()
+};
+Call_staffs_Control2(x) = Staff(x); Call_staffs_Control();
+
+
+Staff(x) = 
+case {
+	
+	staff_has_job[x] == CALL_QUEUE:
+		if (staff_job_data[x][STAFF_JOB_DATA_CUS_ID] > 0) 
+		{
+			serve_cus_seat 
+			{
+				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				
+				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] <= 0) 
+				{
+					var cus = staff_job_data[x][0];
+					staff_job_data[x][STAFF_JOB_DATA_CUS_ID] = 0;
+					staff_job_data[x][STAFF_JOB_DATA_DURATION] = 0;
+					staff_has_job[x] = CALL_FREE;
+					cus_pos[cus] = CUS_EATING;
+					cus_data[cus] = TIME_EATING;
+					cus_data[cus] = cus_duration_eat[cus];
+					
+					staff_assigned_to_queue --;
+				}
+			} -> Skip()
+		}
+	
+	staff_has_job[x] == CALL_BILL:
+		if (staff_job_data[x][STAFF_JOB_DATA_CUS_ID] > 0) 
+		{
+			serve_cus_bill 
+			{
+				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				
+				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] == 0) 
+				{
+					var cus = staff_job_data[x][0];
+					staff_job_data[x][STAFF_JOB_DATA_CUS_ID] = 0;
+					staff_job_data[x][STAFF_JOB_DATA_DURATION] = 0;
+					staff_has_job[x] = CALL_FREE;
+					cus_pos[cus] = CUS_LEFT_RESTAURANT;
+					
+					cus_served ++;
+					
+					restaurant_seats ++;
+					restaurant_seats_result --;
+				}
+			} -> Skip()
+		}
+};

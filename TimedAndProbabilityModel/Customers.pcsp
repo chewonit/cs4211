@@ -1,0 +1,73 @@
+﻿//
+// Customer Processes for
+// TimedAndProbabilityModel.pcsp
+// 
+
+//
+// Customer Join Queue
+// 
+// Simulates the customer joining the queue in 2, 3 or 4 customers
+// at a single point of time with the input probabilities by the user.
+//
+Cus_Join_Queue() = pcase 
+{
+	prob_cus_join_queue[0]: if ( cus_queue_count <= N ) 
+		{
+			cus_join_queue
+			{
+				cus_queue_join_count = 2;
+			} -> Cus_Join_Queue_2()
+		}
+		
+	prob_cus_join_queue[1]: if ( cus_queue_count <= N ) 
+		{
+			cus_join_queue
+			{
+				cus_queue_join_count = 3;
+			} -> Cus_Join_Queue_2()
+		}
+		
+	prob_cus_join_queue[2]: if ( cus_queue_count <= N ) 
+		{
+			cus_join_queue
+			{
+				cus_queue_join_count = 4;
+			} -> Cus_Join_Queue_2()
+		}
+};
+Cus_Join_Queue_2() = cus_join_queue
+{
+	while ( cus_queue_join_count > 0 && cus_queue_count <= N )
+	{
+		queue.Enqueue(cus_queue_count);
+		cus_queue_count ++;
+		cus_queue_join_count --;
+	}
+} -> Skip();
+	
+
+
+//
+// Customer Eating
+// 
+// Simulates the actions of an eating cutomer which will take time.
+//
+Cus_Eating() = 
+{
+	var i = 0;
+	while( i < N+1 )
+	{
+		if ( cus_pos[i] == CUS_EATING )
+		{
+			cus_data[i]--;
+			if ( cus_data[i] <= 0 )
+			{
+				cus_data[i] = 0;
+				cus_pos[i] = CUS_BILL;
+				queue_bill.Enqueue(i);
+			}
+		}
+		i ++;
+	}
+} 
+-> Skip();

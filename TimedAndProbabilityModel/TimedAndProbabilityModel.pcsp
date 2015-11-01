@@ -1,0 +1,304 @@
+﻿/*
+ * Darry
+ * Restaurant Timed And Probability Model
+ * -- With non-deterministic features
+ *
+ * Dependencies: Custom RandomNumber Library
+ *
+ * 
+ * Simulating queuing -> sitting -> eating -> paying -> leaving
+ *
+ * Simulates multiple customers 
+ * joining the queue / eating / requesting for bill
+ * at one point in time, with the staff handing them.
+ *
+ * Multiple customers joining the queue based on
+ * input probabilities.
+ *
+ * Able to calculate the minimum time required 
+ * for all customers to queue ->* leave
+ *
+ * Able to calculate if the number of customers
+ * that can be served in the Targeted Time.
+ * === To aid managers KPI planning
+ *
+ * Able to calculate if the number of Staff
+ * is in redundancy.
+ * === To aid managers in staffing plans
+ *
+ * Able to calculate if the number of Seatings
+ * that is required.
+ * === To aid managers in layout plans
+ *
+ * Able to randomly define a dining duration within a 
+ * specified range for each customer.
+ * === Non-deterministic model
+ *
+ */
+ 
+#import "PAT.Lib.Queue";
+#import "..\lib\RandomNumber";
+
+#include "GlobalDefinitions.pcsp";
+#include "Initialization.pcsp";
+
+#include "Staffs.pcsp";
+#include "Customers.pcsp";
+
+
+//=============================================================
+//==== User Configurations ====================================
+//
+//
+//==== Number of Customers ====================================
+//
+#define N 120;
+
+//
+//==== Number of Staff ========================================
+//
+#define M 8;
+
+//
+//==== Number of Seats ========================================
+//
+#define RESTAURANT_SEATS 100;
+
+//
+//==== Time Constants =========================================
+//
+#define TARGET_TIME 100;
+#define TIME_ASSIGN_TABLE 1;
+#define TIME_EATING 10;
+#define TIME_BILLING 2;
+
+//
+//==== Customer Queue Probability =============================
+//
+// Defines the probability of which 2, 3, or 4 customers 
+// will join the queue respectively.
+//
+var prob_cus_join_queue[3] = [1,1,1]; 
+
+//
+//==== Staff Max Assign Queue Quota ===========================
+//
+// Defines the maximum number of staff that can be assigned to
+// attend to the customes at the queue at a single time.
+// This allows for better planning and variation in strategy.
+//
+#define STAFF_MAX_ASSIGN_QUEUE 2;
+
+//
+//==== Non Deterministic Model ================================
+//
+// Defines a duration range that the customer may take to dine
+// in the resturant.
+//
+#define DETERMINISTIC true;
+#define TIME_EATING_MIN 4;
+#define TIME_EATING_MAX 10;
+
+//
+//==== END User Configurations ================================
+//=============================================================
+
+
+//
+//=============================================================
+//==== Golbal Definitions =====================================
+//=============================================================
+//==== GlobalDefinitions.pcsp =================================
+//
+
+
+//
+//=============================================================
+//==== Process Definitions ====================================
+//
+
+//
+// Restaurant Model Definition
+// 
+// Initialized the system and then hands control to Restaurant_Control.
+//
+Restaurant() = Init(); Restaurant_Control();
+
+
+//
+// Initialization
+// 
+// Initialization.pcsp
+//
+
+
+//
+// Restaurant Control
+// 
+// Controls the flow of the system.
+// 1. Lets all the Processes of the Restaurant run.
+// 2. Increment timer.
+// 3. Performs check if time has exceded or if all customers have been served.
+// -- [TRUE] If conditions are true, calculate results and restart Restaurant System.
+// -- [FALSE] If conditions are false, loop back to Restaurant_Control.
+//
+Restaurant_Control() = Processes(); Timer(); 
+	if(timer_exceeded || served_all_customers) 
+		{
+			check_redundant_staff {
+				
+				var i = 1;
+				var has_redundant_staff = false;
+				
+				while ( i <= M ) {
+					if ( staff_has_been_activiated[i] == 0 )
+					{
+						if (!has_redundant_staff) 
+						{
+							has_redundant_staff = true;
+						}
+						redundant_staff_count++;
+					}
+					i++;
+				}
+				
+				if (has_redundant_staff)
+				{
+					redundancy_staff = REDUNDANT;
+				}
+				else
+				{
+					redundancy_staff = REDUNDANT_NO;
+				}
+			} 
+			-> Restaurant()
+		} 
+		else 
+		{
+			Restaurant_Control()
+		};
+
+
+//
+// Timer Process
+// 
+// Performs check on timer before incrementing timer.
+//
+Timer() = Timer_Check(); time.timer+1{ timer++; } -> Skip();
+
+//
+// Timer Check
+// 
+// Checks if the time is within the targeted time or 
+// if all customers have been served.
+//
+Timer_Check() = if(timer >= TARGET_TIME && test_with_target_time) 
+	{
+		{timer_exceeded = true;} -> Skip()
+	}
+	else if (cus_served == N) 
+	{
+		{served_all_customers = true;} -> Skip()
+	};
+
+
+//
+// Processes
+// 
+// This holds all the restaurant processes to run
+//
+Processes() = Cus_Join_Queue(); Staff_Control(); Cus_Eating();
+
+
+//
+// Staff Processes
+// 
+// Staffs.pcsp
+//
+
+//
+// Customer Processes
+// 
+// Customers.pcsp
+//
+
+
+
+//
+// Alternate systems
+//
+// Test without time constraints.
+//
+var test_with_target_time = true;
+Restaurant_No_Time_Target() = atomic
+	{ 
+		{ 
+			test_with_target_time = false 
+		} ->Skip()
+	}; Restaurant();
+
+
+
+//
+//=============================================================
+//==== Goal Definitions ========================================
+//
+#define goal_timer_reach_N_minus_1 (timer > N);
+#define goal_served_all_customers (cus_served == N);
+#define goal_served_all_customers_timed (cus_served == N && timer <= TARGET_TIME);
+#define goal_target_time (timer <= TARGET_TIME);
+#define goal_redundant_staff_none (redundancy_staff == REDUNDANT_NO && redundancy_staff != REDUNDANT_CHECKING);
+#define goal_redundant_staff (redundancy_staff == REDUNDANT && redundancy_staff != REDUNDANT_CHECKING && cus_served == N);
+
+
+//
+//==== Assertions =============================================
+//
+#assert Restaurant() deadlockfree;
+
+//
+// Asserts that the global timer reaches N-1
+//
+#assert Restaurant() reaches goal_timer_reach_N_minus_1;
+
+//
+// Asserts that all customers have been served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_served_all_customers_timed;
+
+//
+// Asserts that all customers have been served without time constrains.
+//
+#assert Restaurant_No_Time_Target() reaches goal_served_all_customers;
+
+//
+// Gets the amount of time to serve all customers.
+//
+#assert Restaurant() reaches goal_served_all_customers with min( timer );
+
+//
+// Gets the maximum number of customers served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_target_time with max( cus_served );
+
+//
+// Gets the maximum number of seats required with serving all customers in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_target_time with max( restaurant_seats_result );
+
+//
+// Asserts that the staff is NOT in redundancy
+//
+#assert Restaurant() reaches goal_redundant_staff_none;
+
+//
+// Asserts that the staff is in redundancy
+//
+#assert Restaurant() reaches goal_redundant_staff;
+
+//
+// Gets how many staff is redundant
+//
+#assert Restaurant() reaches goal_redundant_staff with min( redundant_staff_count );
+
+

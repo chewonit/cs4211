@@ -1,0 +1,86 @@
+﻿//
+//=============================================================
+//==== Golbal Definitions for =================================
+//=============================================================
+//==== TimedAndProbabilityModel.pcsp ==========================
+//
+
+//
+//==== Golbal Timer Variable ==================================
+//
+var timer;
+
+//
+//==== Queue Simulations ======================================
+//
+var<Queue> queue;
+var<Queue> queue_bill;
+var<Queue> queue_staff;
+
+//
+//==== Customer Positions =====================================
+//
+enum {
+	CUS_IN_QUEUE, 
+	CUS_WALKING_TO_TABLE, 
+	CUS_EATING, 
+	CUS_BILL, 
+	CUS_PAYING_BILL,
+	CUS_LEFT_RESTAURANT
+};
+
+//
+//==== Customer Variables =====================================
+//
+var cus_pos[N+1];
+var cus_data[N+1];
+var cus_duration_eat[N+1];
+
+//
+//==== Customer Queue Variables ===============================
+//
+var cus_queue_count = 1;
+var cus_queue_join_count = 0;
+
+//
+//==== Staff Call Events ======================================
+//
+enum {CALL_FREE, CALL_QUEUE, CALL_BILL};
+
+//
+//==== Staff Variables ========================================
+//
+#define STAFF_JOB_DATA_CUS_ID 0;
+#define STAFF_JOB_DATA_DURATION 1;
+
+var staff_has_job[M+1];
+var staff_job_data[M+1][2];
+var staff_has_been_activiated[M+1]; // Track activated staffs
+
+var staff_assigned_to_queue;
+var staff_assigned_to_bill;
+
+var call_staffs_control_index = 1;
+
+enum {REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
+var redundancy_staff = REDUNDANT_CHECKING;
+var redundant_staff_count = 0;
+
+//
+//==== Number Of Seats ========================================
+//
+var restaurant_seats = RESTAURANT_SEATS;
+var restaurant_seats_result;
+
+//
+//==== Number Of Customer Served ==============================
+//
+var cus_served;
+
+//
+//==== Flags ==================================================
+//
+var timer_exceeded = false; //signal golbal timer exceeded TARGET_TIME
+var served_all_customers = false;
+var first_run = false;
+
