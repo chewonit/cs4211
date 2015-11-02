@@ -1,10 +1,12 @@
 ﻿/*
- * Darry
+ * Darry Chew
+ * A0097797
+ * CS4211 - FORMAL METHODS FOR SOFTWARE ENGINEERING
+ *
  * Restaurant Timed And Probability Model
  * -- With non-deterministic features
  *
  * Dependencies: Custom RandomNumber Library
- *
  * 
  * Simulating queuing -> sitting -> eating -> paying -> leaving
  *
@@ -12,27 +14,44 @@
  * joining the queue / eating / requesting for bill
  * at one point in time, with the staff handing them.
  *
- * Multiple customers joining the queue based on
- * input probabilities.
+ * HIGHLIGHTS
+ * ==========
  *
+ * Min Time Required
+ * ------------------
  * Able to calculate the minimum time required 
  * for all customers to queue ->* leave
+ * === To estimate turnover times
  *
- * Able to calculate if the number of customers
+ * Max Customer Served
+ * --------------------
+ * Able to calculate the max number of customers
  * that can be served in the Targeted Time.
  * === To aid managers KPI planning
  *
+ * Redundant Staffs
+ * -----------------
  * Able to calculate if the number of Staff
  * is in redundancy.
  * === To aid managers in staffing plans
  *
+ * Min Seatings Required
+ * ----------------------
  * Able to calculate if the number of Seatings
  * that is required.
  * === To aid managers in layout plans
  *
+ * Probabilistic customer queue joining
+ * -------------------------------------
+ * Multiple customers joining the queue based on
+ * input probabilities.
+ * === Simulate multiple customers joining 
+ * === the queue at an instance
+ *
+ * Non-deterministic Feature
+ * ----------------------
  * Able to randomly define a dining duration within a 
  * specified range for each customer.
- * === Non-deterministic model
  *
  */
  
@@ -62,7 +81,7 @@
 //
 //==== Number of Seats ========================================
 //
-#define RESTAURANT_SEATS 100;
+#define RESTAURANT_SEATS 24;
 
 //
 //==== Time Constants =========================================
