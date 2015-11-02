@@ -4,9 +4,9 @@
 #define NUM_ORDERS 2;
 #define ORDER_ARRIVAL_INTERVAL 1;
 
-#define TIME_DISH_1 10;
+#define TIME_DISH_1 13;
 #define TIME_DISH_2 3;
-#define TIME_DISH_3 5;
+#define TIME_DISH_3 7;
 #define TIME_DISH_4 2;
 
 var<Queue> order_queue;
@@ -16,13 +16,14 @@ var chefs_occupied = 0;
 var timer = 0;
 var orders_queued = 0;
 var orders_cooked = 0;
+var orders_served = 0;
 var num_process = 0;
 var process_count = 0;
 
 channel c_order_arrived 0;
 channel c_order_proceed 0;
 channel c_time_ready 0;
-
+channel c_order_cooked 0;
 Timer() = c_time_ready?i ->  pcase
 							 {
                      		 	[0.1] : TimeCookDish1()
@@ -93,7 +94,7 @@ RestaurantCheck() = if(orders_queued<NUM_ORDERS)
 				  	};
 
 
-Kitchen() = if(chef_occupied_queue.Count()<NUM_CHEFS && orders_cooked!=NUM_ORDERS) 
+Kitchen() = if(chef_occupied_queue.Count()<NUM_CHEFS && order_queue.Count()!=0) 
 		  	{
 				c_order_proceed!order_queue.First() -> dequeue_order
 													   {
@@ -106,6 +107,8 @@ Kitchen() = if(chef_occupied_queue.Count()<NUM_CHEFS && orders_cooked!=NUM_ORDER
 		  	{
 				Kitchen()
 		  	};
+		  	
+
 
 OrderArrive(i) = c_order_arrived!i -> c_order_proceed?i -> Cook(i);
 			
@@ -119,14 +122,15 @@ Cook(i) = cooking
 FinishCook(i) = finished_cooking
 				{
 					num_process--;
+					orders_served++;
 					chef_occupied_queue.Dequeue();
 										
-				} -> OrderArrive(i);
+				} -> c_order_cooked!i -> OrderArrive(i);
 													
 
 
 System() =  (||| x:{0..NUM_ORDERS-1}@OrderArrive(x)) ||| Restaurant() ||| Timer();
 
 #assert System deadlockfree;
-#define goal (timer > NUM_ORDERS*2);
-#assert System reaches goal;
+#define goal (orders_served == NUM_ORDERS);
+#assert System reaches goal with max(timer);
