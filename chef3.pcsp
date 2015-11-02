@@ -1,0 +1,132 @@
+﻿﻿#import "PAT.Lib.Queue";
+
+#define NUM_CHEFS 1;
+#define NUM_ORDERS 2;
+#define ORDER_ARRIVAL_INTERVAL 1;
+
+#define TIME_DISH_1 10;
+#define TIME_DISH_2 3;
+#define TIME_DISH_3 5;
+#define TIME_DISH_4 2;
+
+var<Queue> order_queue;
+var<Queue> chef_occupied_queue;
+
+var chefs_occupied = 0;
+var timer = 0;
+var orders_queued = 0;
+var orders_cooked = 0;
+var num_process = 0;
+var process_count = 0;
+
+channel c_order_arrived 0;
+channel c_order_proceed 0;
+channel c_time_ready 0;
+
+Timer() = c_time_ready?i ->  pcase
+							 {
+                     		 	[0.1] : TimeCookDish1()
+                     			[0.3] : TimeCookDish2()
+                     			[0.2] : TimeCookDish2()
+                     			[0.4] : TimeCookDish2()
+                     		 };
+
+TimeCookDish1() = increment_timer
+							 {
+								process_count++; 
+								if(process_count == num_process) 
+								{
+									timer=timer+TIME_DISH_1; 
+									process_count=0;
+								} 
+							 } -> Timer();
+
+
+TimeCookDish2() = increment_timer
+							 {
+								process_count++; 
+								if(process_count == num_process) 
+								{
+									timer=timer+TIME_DISH_2; 
+									process_count=0;
+								} 
+							 } -> Timer();
+
+
+TimeCookDish3() = increment_timer
+							 {
+								process_count++; 
+								if(process_count == num_process) 
+								{
+									timer=timer+TIME_DISH_3; 
+									process_count=0;
+								} 
+							 } -> Timer();
+
+
+TimeCookDish4() = increment_timer
+							 {
+								process_count++; 
+								if(process_count == num_process) 
+								{
+									timer=timer+TIME_DISH_4; 
+									process_count=0;
+								} 
+							 } -> Timer();
+
+
+
+Restaurant() = c_order_arrived?i -> queue_orders
+									{
+										order_queue.Enqueue(i); 
+										orders_queued++;
+										
+									} -> RestaurantCheck();
+
+RestaurantCheck() = if(orders_queued<NUM_ORDERS)
+				    {
+						Restaurant()
+				    }
+				  	else
+				  	{
+				  		Kitchen()
+				  	};
+
+
+Kitchen() = if(chef_occupied_queue.Count()<NUM_CHEFS && orders_cooked!=NUM_ORDERS) 
+		  	{
+				c_order_proceed!order_queue.First() -> dequeue_order
+													   {
+													   		orders_cooked++;
+															order_queue.Dequeue();
+															
+													   } -> Kitchen()
+		  	}
+		  	else
+		  	{
+				Kitchen()
+		  	};
+
+OrderArrive(i) = c_order_arrived!i -> c_order_proceed?i -> Cook(i);
+			
+Cook(i) = cooking
+		  { 	
+		  		num_process++;
+				chef_occupied_queue.Enqueue(i)
+				
+		  } -> c_time_ready!i -> FinishCook(i);
+
+FinishCook(i) = finished_cooking
+				{
+					num_process--;
+					chef_occupied_queue.Dequeue();
+										
+				} -> OrderArrive(i);
+													
+
+
+System() =  (||| x:{0..NUM_ORDERS-1}@OrderArrive(x)) ||| Restaurant() ||| Timer();
+
+#assert System deadlockfree;
+#define goal (timer > NUM_ORDERS*2);
+#assert System reaches goal;
