@@ -1,4 +1,5 @@
-﻿enum{Enter, Leave};
+﻿
+
 
 enum{REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
 var redundancy_menu = REDUNDANT_CHECKING;
@@ -7,13 +8,13 @@ var redundant_menu_count = 0;
 
 enum{DishA, DishB, DishC, DishD, DishE, DishF};
 var price = [8, 9, 8, 10, 5, 3];
-var stock = [3, 3, 3, 0, 3, 3];
-var stock_arr = [3, 3, 3, 0, 3, 3];
+var stock[noOfDish];
+var stock_arr = [5, 3, 7, 8, 15, 23];
 var priceOfReStock = [2, 3, 2, 4, 2, 1];
 var out_of_stock = false;
 
 
-#define customer 1000;
+#define N 1000;
  
 #define chef 3;
 #define staff 3;
@@ -27,15 +28,15 @@ var out_of_stock = false;
 var pos = -1;
 var order = -1;
 var sales;
-var index;
-#define costPerDay 200;
+var customer;
+#define costPerDay 50;
 var food_has_been_ordered[noOfDish];
 
 
 Init() = {
 	pos = -1;
 	sales = 0;
-	index = 0;
+	customer = 0;
 	order = -1;
 	out_of_stock = false;
 	
@@ -56,7 +57,7 @@ Init() = {
 Cus_System() = Init(); Cus_Process();
 
 Cus_Process() = Cus_Choose_Dish();
-	if(index == customer || sales > costPerDay || out_of_stock == true) 
+	if(customer == N || sales > costPerDay || out_of_stock == true) 
 	{	
 		check_redundant_menu {
 			var i =0;
@@ -115,7 +116,7 @@ MakeOrder(dish) = {
 	sales = sales + price[dish];
 	stock[dish] = stock[dish] - 1;
 	food_has_been_ordered[dish]++;
-	index++;
+	customer++;
 }->Skip();
 
 
@@ -123,18 +124,29 @@ MakeOrder(dish) = {
 #define goal_no_redundant_menu (redundancy_menu == REDUNDANT_NO && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay); 
 #define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay);
 #define goal_no_out_of_stock (out_of_stock == false && sales > costPerDay);
+#define goal_reach_out_of_stock (out_of_stock == true && sales < costPerDay);
 
 
 
 #assert Cus_System() deadlockfree;
+
 #assert Cus_System() reaches goal_no_redundant_menu;
-#assert Cus_System() reaches goal_no_redundant_menu with min (index);
-#assert Cus_System() reaches goal_no_out_of_stock;
+#assert Cus_System() reaches goal_no_redundant_menu with min (customer);
 
 #assert Cus_System() reaches goal_redundant_menu;
-#assert Cus_System() reaches goal_redundant_menu with min (index);
+#assert Cus_System() reaches goal_redundant_menu with min (customer);
 #assert Cus_System() reaches goal_redundant_menu with min (redundant_menu_count);
-#assert Cus_System() reaches goal with prob;
-#assert Cus_System() reaches goal with min(sales);
-#assert Cus_System() reaches goal with max(sales);
-#assert Cus_System() reaches goal with max(index);
+
+#assert Cus_System() reaches goal_no_out_of_stock;
+#assert Cus_System() reaches goal_no_out_of_stock with min(redundant_menu_count);
+#assert Cus_System() reaches goal_no_out_of_stock with max(redundant_menu_count);
+
+#assert Cus_System() reaches goal_reach_out_of_stock;
+#assert Cus_System() reaches goal_reach_out_of_stock with max (sales);
+#assert Cus_System() reaches goal_reach_out_of_stock with max (redundant_menu_count);
+
+
+#assert Cus_System() reaches goal;
+#assert Cus_System() reaches goal with min(redundant_menu_count);
+#assert Cus_System() reaches goal with max(redundant_menu_count);
+#assert Cus_System() reaches goal with max(customer);
