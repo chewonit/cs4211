@@ -7,7 +7,7 @@ var redundant_menu_count = 0;
 
 enum{DishA, DishB, DishC, DishD, DishE, DishF};
 var price = [8, 9, 8, 10, 5, 3];
-var stock = [10, 10, 10, 10, 10, 10];
+var stock = [3, 3, 3, 3, 3, 3];
 var priceOfReStock = [2, 3, 2, 4, 2, 1];
 
 
@@ -20,14 +20,14 @@ var priceOfReStock = [2, 3, 2, 4, 2, 1];
 #define cleaner 2;
 #define amount_to_restock 10;
 #define noOfDish 6;
-
+#define targetSales 100;
 
 
 var pos = -1;
 var order = -1;
 var sales;
 var index;
-var costPerDay = 20;
+var costPerDay = 50;
 var food_has_been_ordered[noOfDish];
 
 
@@ -37,7 +37,7 @@ Init() = {
 	index = 0;
 	order = -1;
 	
-	costPerDay = 20;
+	costPerDay = 50;
 	
 	redundancy_menu = REDUNDANT_CHECKING;
 	redundant_menu_count = 0;
@@ -45,7 +45,7 @@ Init() = {
 	var i = 0;
 	while(i < noOfDish) {
 		food_has_been_ordered[i] = 0;
-		stock[i] = 10;
+		stock[i] = 3;
 		i++;
 	}
 	
@@ -120,11 +120,15 @@ MakeOrder(dish) = {
 
 
 #define goal sales > costPerDay;
-#define goal_no_redundant_menu ( 
+#define goal_no_redundant_menu (redundancy_menu == REDUNDANT_NO && redundancy_menu != REDUNDANT_CHECKING); 
 #define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay);
 
+
 #assert Cus_System() deadlockfree;
+#assert Cus_System() reaches goal_no_redundant_menu;
+#assert Cus_System() reaches goal_no_redundant_menu with max (index);
 #assert Cus_System() reaches goal_redundant_menu;
+#assert Cus_System() reaches goal_redundant_menu with min (index);
 #assert Cus_System() reaches goal_redundant_menu with min (redundant_menu_count);
 #assert Cus_System() reaches goal with prob;
 #assert Cus_System() reaches goal with min(sales);
