@@ -13,6 +13,10 @@ Init() = initialization
 		restaurant_seats = RESTAURANT_SEATS;
 		restaurant_seats_result = 0;
 		
+		staff_clock_time_max = 0;
+		staff_clock_time_min = 0;
+		staff_clock_time_avg = 0;
+		
 		staff_assigned_to_queue = 0;
 		staff_assigned_to_bill = 0;
 		
@@ -32,6 +36,7 @@ Init() = initialization
 			staff_job_data[i][STAFF_JOB_DATA_CUS_ID] = 0;
 			staff_job_data[i][STAFF_JOB_DATA_DURATION] = 0;
 			staff_has_been_activiated[i] = 0;
+			staff_clocked_time[i] = 0;
 			queue_staff.Enqueue(i);
 			i++;
 		}

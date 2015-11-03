@@ -56,6 +56,10 @@ enum {CALL_FREE, CALL_QUEUE, CALL_BILL};
 var staff_has_job[M+1];
 var staff_job_data[M+1][2];
 var staff_has_been_activiated[M+1]; // Track activated staffs
+var staff_clocked_time[M+1]; // Track clock time of each staff
+var staff_clock_time_max = 0;
+var staff_clock_time_min = 0;
+var staff_clock_time_avg = 0;
 
 var staff_assigned_to_queue;
 var staff_assigned_to_bill;

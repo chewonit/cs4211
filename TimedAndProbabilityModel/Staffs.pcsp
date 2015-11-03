@@ -140,6 +140,7 @@ case {
 			serve_cus_seat 
 			{
 				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				staff_clocked_time[x] ++;
 				
 				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] <= 0) 
 				{
@@ -162,6 +163,7 @@ case {
 			serve_cus_bill 
 			{
 				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				staff_clocked_time[x] ++;
 				
 				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] == 0) 
 				{

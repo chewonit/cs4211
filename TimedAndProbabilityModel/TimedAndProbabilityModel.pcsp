@@ -41,6 +41,13 @@
  * that is required.
  * === To aid managers in layout plans
  *
+ * Staff Clocked Time
+ * ----------------------
+ * Able to calculate the Minimum, Maximum and Average
+ * clock times of staffs. Where clock time of a staff is
+ * the amount of time units the staff has been busy for.
+ * === To estimate staff efficiency
+ *
  * Probabilistic customer queue joining
  * -------------------------------------
  * Multiple customers joining the queue based on
@@ -190,6 +197,26 @@ Restaurant_Control() = Processes(); Timer();
 					redundancy_staff = REDUNDANT_NO;
 				}
 			} 
+			-> compute_staff_clock_time {
+				
+				var i = 1;		
+				var min_time = staff_clocked_time[1];
+				var avg = 0;
+				while ( i <= M ) {
+					avg = avg + staff_clocked_time[i];
+					if ( staff_clocked_time[i] > staff_clock_time_max )
+					{
+						staff_clock_time_max = staff_clocked_time[i];
+					}
+					if ( staff_clocked_time[i] < min_time )
+					{
+						min_time = staff_clocked_time[i];
+					}
+					i++;
+				}
+				staff_clock_time_min = min_time;
+				staff_clock_time_avg = avg / M;
+			}
 			-> Restaurant()
 		} 
 		else 
@@ -320,4 +347,17 @@ Restaurant_No_Time_Target() = atomic
 //
 #assert Restaurant() reaches goal_redundant_staff with min( redundant_staff_count );
 
+//
+// Gets the maximum clock time of staffs
+//
+#assert Restaurant() reaches goal_target_time with max( staff_clock_time_max );
 
+//
+// Gets the minimum clock time of staffs
+//
+#assert Restaurant() reaches goal_target_time with max( staff_clock_time_min );
+
+//
+// Gets the average clock time of staffs
+//
+#assert Restaurant() reaches goal_target_time with max( staff_clock_time_avg );
