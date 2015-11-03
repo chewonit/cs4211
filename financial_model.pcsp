@@ -57,7 +57,7 @@ Init() = {
 Cus_System() = Init(); Cus_Process();
 
 Cus_Process() = Cus_Choose_Dish();
-	if(customer == N || sales > costPerDay || out_of_stock == true) 
+	if(customer == N || sales > targetSales || out_of_stock == true) 
 	{	
 		check_redundant_menu {
 			var i =0;
@@ -121,6 +121,7 @@ MakeOrder(dish) = {
 
 
 #define goal sales > costPerDay;
+#define targetSalesGoal sales >= targetSales;
 #define goal_no_redundant_menu (redundancy_menu == REDUNDANT_NO && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay); 
 #define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay);
 #define goal_no_out_of_stock (out_of_stock == false && sales > costPerDay);
@@ -149,4 +150,10 @@ MakeOrder(dish) = {
 #assert Cus_System() reaches goal;
 #assert Cus_System() reaches goal with min(redundant_menu_count);
 #assert Cus_System() reaches goal with max(redundant_menu_count);
-#assert Cus_System() reaches goal with max(customer);
+#assert Cus_System() reaches goal with min(customer);
+
+#assert Cus_System() reaches targetSalesGoal;
+#assert Cus_System() reaches targetSalesGoal with min(customer);
+#assert Cus_System() reaches targetSalesGoal with max(customer);
+#assert Cus_System() reaches targetSalesGoal with min(sales);
+#assert Cus_System() reaches targetSalesGoal with max(sales);
