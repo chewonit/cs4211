@@ -1,17 +1,54 @@
-﻿enum{DishA, DishB, DishC, DishD, DishE, DishF};
-var price = [8,9,8,17, 11, 13];
+﻿enum{Enter, Leave};
+
+enum{REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
+var redundancy_menu = REDUNDANT_CHECKING;
+var redundant_menu_count = 0;
+
+
+enum{DishA, DishB, DishC, DishD, DishE, DishF};
+var price = [8, 9, 8, 10, 5, 3];
+var stock = [10, 10, 10, 10, 10, 10];
+var priceOfReStock = [2, 3, 2, 4, 2, 1];
+
+
 
 #define customer 1000;
-#define costPerDay 100;
 
+#define chef 3;
+#define staff 3;
+#define manager 1;
+#define cleaner 2;
+#define amount_to_restock 10;
+#define noOfDish 6;
+
+
+
+var pos = -1;
 var order = -1;
-var sales = 0;
-var index = 0;
+var sales;
+var index;
+var costPerDay = 20;
+var food_has_been_ordered[noOfDish];
+
 
 Init() = {
+	pos = -1;
 	sales = 0;
 	index = 0;
 	order = -1;
+	
+	costPerDay = 20;
+	
+	redundancy_menu = REDUNDANT_CHECKING;
+	redundant_menu_count = 0;
+	
+	var i = 0;
+	while(i < noOfDish) {
+		food_has_been_ordered[i] = 0;
+		stock[i] = 10;
+		i++;
+	}
+	
 }->Skip();
 
 
@@ -19,15 +56,51 @@ Cus_System() = Init(); Cus_Process();
 
 Cus_Process() = Cus_Choose_Dish();
 	if(index == customer || sales > costPerDay) 
-	{
-		Cus_System()
+	{	
+		check_redundant_menu {
+			var i =0;
+			var has_redundant_menu = false;
+			
+			while (i < noOfDish) {
+				if( food_has_been_ordered [i] == 0)
+				{
+					if(!has_redundant_menu)
+					{
+						has_redundant_menu = true;
+					}
+					redundant_menu_count++;
+				}
+				i++;
+			}
+			
+			if(has_redundant_menu)
+			{
+				redundancy_menu = REDUNDANT;
+			}
+			else 
+			{
+				redundancy_menu = REDUNDANT_NO;
+			}
+		}
+		->Cus_System()
 	}
 	else
 	{
 		Cus_Process()
 	};
 	
-Cus_Choose_Dish() = Customer(); MakeOrder(order);
+Cus_Choose_Dish() = Check_Stock(); Customer(); MakeOrder(order);
+
+Check_Stock() = {
+	var i = 0;
+	while(i < noOfDish) {
+		if(stock[i] <= 2) {
+			stock[i] = stock[i] + amount_to_restock;
+			costPerDay = costPerDay + priceOfReStock[i];
+		}
+		i++;
+	}
+}->Skip();
 
 Customer() = pcase {
        10 : cus.DishA{order = DishA} -> Skip
@@ -40,17 +113,19 @@ Customer() = pcase {
 
 MakeOrder(dish) = {
 	sales = sales + price[dish];
+	stock[dish] = stock[dish] - 1;
+	food_has_been_ordered[dish]++;
 	index++;
 }->Skip();
 
 
-
-
-
-
 #define goal sales > costPerDay;
-#assert Cus_Choose_Dish() deadlockfree;
+#define goal_no_redundant_menu ( 
+#define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay);
+
 #assert Cus_System() deadlockfree;
+#assert Cus_System() reaches goal_redundant_menu;
+#assert Cus_System() reaches goal_redundant_menu with min (redundant_menu_count);
 #assert Cus_System() reaches goal with prob;
 #assert Cus_System() reaches goal with min(sales);
 #assert Cus_System() reaches goal with max(sales);
