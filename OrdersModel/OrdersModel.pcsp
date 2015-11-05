@@ -1,0 +1,274 @@
+﻿#import "PAT.Lib.Queue";
+#import "..\lib\RandomNumber";
+
+#include "GlobalDefinitions.pcsp";
+#include "Initialization.pcsp";
+
+#include "Orders.pcsp";
+#include "Chef.pcsp";
+
+
+//=============================================================
+//==== User Configurations ====================================
+//
+//
+//==== Number of Orders =======================================
+//
+#define N 40;
+
+//
+//==== Number of Chefs ========================================
+//
+#define M 5;
+
+//
+//==== Time Constants =========================================
+//
+#define TARGET_TIME 150;
+#define TIME_TO_COOK 8;
+
+//
+//==== Order Queue Probability ================================
+//
+// Defines the probability of which 2, 3, or 4 orders 
+// will join the queue respectively.
+//
+var prob_ord_join_queue[3] = [1,1,1]; 
+
+//
+//==== Non Deterministic Model ================================
+//
+// Defines a duration range that the order may take to be cooked.
+//
+#define DETERMINISTIC true;
+#define TIME_TO_COOK_MIN 4;
+#define TIME_TO_COOK_MAX 10;
+
+//
+//==== END User Configurations ================================
+//=============================================================
+
+
+//
+//=============================================================
+//==== Golbal Definitions =====================================
+//=============================================================
+//==== GlobalDefinitions.pcsp =================================
+//
+
+
+//
+//=============================================================
+//==== Process Definitions ====================================
+//
+
+//
+// Restaurant Model Definition
+// 
+// Initialized the system and then hands control to Restaurant_Control.
+//
+Restaurant() = Init(); Restaurant_Control();
+
+
+//
+// Initialization
+// 
+// Initialization.pcsp
+//
+
+
+//
+// Restaurant Control
+// 
+// Controls the flow of the system.
+// 1. Lets all the Processes of the Restaurant run.
+// 2. Increment timer.
+// 3. Performs check if time has exceded or if all orders have been served.
+// -- [TRUE] If conditions are true, calculate results and restart Restaurant System.
+// -- [FALSE] If conditions are false, loop back to Restaurant_Control.
+//
+Restaurant_Control() = Processes(); Timer(); 
+	if(timer_exceeded || served_all_orders) 
+		{
+			check_redundant_chefs {
+				
+				var i = 1;
+				var has_redundant_chef = false;
+				
+				while ( i <= M ) {
+					if ( chef_has_been_activiated[i] == 0 )
+					{
+						if (!has_redundant_chef) 
+						{
+							has_redundant_chef = true;
+						}
+						redundant_chef_count++;
+					}
+					i++;
+				}
+				
+				if (has_redundant_chef)
+				{
+					redundancy_chef = REDUNDANT;
+				}
+				else
+				{
+					redundancy_chef = REDUNDANT_NO;
+				}
+			} 
+			-> compute_chef_clock_time {
+				
+				var i = 1;		
+				var min_time = chef_clocked_time[1];
+				var avg = 0;
+				while ( i <= M ) {
+					avg = avg + chef_clocked_time[i];
+					if ( chef_clocked_time[i] > chef_clock_time_max )
+					{
+						chef_clock_time_max = chef_clocked_time[i];
+					}
+					if ( chef_clocked_time[i] < min_time )
+					{
+						min_time = chef_clocked_time[i];
+					}
+					i++;
+				}
+				chef_clock_time_min = min_time;
+				chef_clock_time_avg = avg / M;
+			}
+			-> Restaurant()
+		} 
+		else 
+		{
+			Restaurant_Control()
+		};
+
+
+//
+// Timer Process
+// 
+// Performs check on timer before incrementing timer.
+//
+Timer() = Timer_Check(); time.timer+1{ timer++; } -> Skip();
+
+//
+// Timer Check
+// 
+// Checks if the time is within the targeted time or 
+// if all customers have been served.
+//
+Timer_Check() = if(timer >= TARGET_TIME && test_with_target_time) 
+	{
+		{timer_exceeded = true;} -> Skip()
+	}
+	else if (ord_served == N) 
+	{
+		{served_all_orders = true;} -> Skip()
+	};
+
+//
+// Processes
+// 
+// This holds all the restaurant processes to run
+//
+Processes() = Ord_Join_Queue(); Chef_Control();
+
+
+//
+// Orders Processes
+// 
+// Orders.pcsp
+//
+
+//
+// Chef Processes
+// 
+// Chef.pcsp
+//
+
+
+//
+// Alternate systems
+//
+// Test without time constraints.
+//
+var test_with_target_time = true;
+Restaurant_No_Time_Target() = atomic
+	{ 
+		{ 
+			test_with_target_time = false 
+		} ->Skip()
+	}; Restaurant();
+
+
+//
+//=============================================================
+//==== Goal Definitions ========================================
+//
+#define goal_timer_reach_N_minus_1 (timer > N);
+#define goal_served_all_orders (ord_served == N);
+#define goal_served_all_orders_timed (ord_served == N && timer <= TARGET_TIME);
+#define goal_target_time (timer <= TARGET_TIME);
+#define goal_redundant_chef_none (redundancy_chef == REDUNDANT_NO && redundancy_chef != REDUNDANT_CHECKING);
+#define goal_redundant_chef (redundancy_chef == REDUNDANT && redundancy_chef != REDUNDANT_CHECKING && ord_served == N);
+
+
+//
+//==== Assertions =============================================
+//
+#assert Restaurant() deadlockfree;
+
+//
+// Asserts that the global timer reaches N-1
+//
+#assert Restaurant() reaches goal_timer_reach_N_minus_1;
+
+//
+// Asserts that all orders have been served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_served_all_orders_timed;
+
+//
+// Asserts that all orders have been served without time constrains.
+//
+#assert Restaurant_No_Time_Target() reaches goal_served_all_orders;
+
+//
+// Gets the amount of time to serve all orders.
+//
+#assert Restaurant() reaches goal_served_all_orders with min( timer );
+
+//
+// Gets the maximum number of orders served in Targeted Units of Time.
+//
+#assert Restaurant() reaches goal_target_time with max( ord_served );
+
+//
+// Asserts that the chef is NOT in redundancy
+//
+#assert Restaurant() reaches goal_redundant_chef_none;
+
+//
+// Asserts that the chef is in redundancy
+//
+#assert Restaurant() reaches goal_redundant_chef;
+
+//
+// Gets how many chef is redundant
+//
+#assert Restaurant() reaches goal_redundant_chef with min( redundant_chef_count );
+
+//
+// Gets the maximum clock time of the chefs
+//
+#assert Restaurant() reaches goal_target_time with max( chef_clock_time_max );
+
+//
+// Gets the minimum clock time of the chefs 
+//
+#assert Restaurant() reaches goal_target_time with max( chef_clock_time_min );
+
+//
+// Gets the average clock time of the chefs
+//
+#assert Restaurant() reaches goal_target_time with max( chef_clock_time_avg );

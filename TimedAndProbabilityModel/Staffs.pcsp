@@ -43,6 +43,7 @@ if (queue.Count() > 0)
 				if( staff_has_job[i] == CALL_FREE )
 				{
 					staff_has_job[i] = CALL_QUEUE;
+					staff_has_been_activiated[i] = 1;
 					flag_found_staff = true;
 					
 					var cus = queue.First();
