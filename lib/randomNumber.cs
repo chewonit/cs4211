@@ -14,11 +14,11 @@ namespace PAT.Lib
     {
     	/**
     	 * Returns a Random number in the range of a and b inclusive.
-    	 * Inputs are to be greater than 0, otherwise they will be 
-    	 * forced to 0.
+    	 * Inputs are to be greater than 1, otherwise they will be 
+    	 * forced to 1.
     	 * If a is greater than b, the inputs would be swapped.
     	 */
-		public static int randomNumber(int a, int b)
+	public static int randomNumber(int a, int b)
 		{
         	if (a < 1)
         	{
