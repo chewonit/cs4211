@@ -1,4 +1,16 @@
-﻿#import "PAT.Lib.Queue";
+﻿/*
+ * Group 14
+ * 
+ * Chew Chin Hao Darry (A0097797Y)
+ * Renaldy A W (A0082930H)
+ * Sng Ping Chiang (A0081115U)
+ * Yuen Shu Hui (A0098808L)
+ *
+ * CS4211 - FORMAL METHODS FOR SOFTWARE ENGINEERING
+ *
+ */
+ 
+#import "PAT.Lib.Queue";
 #import "..\lib\RandomNumber";
 
 #include "GlobalDefinitions.pcsp";

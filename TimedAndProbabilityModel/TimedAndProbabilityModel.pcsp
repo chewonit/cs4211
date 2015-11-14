@@ -1,6 +1,11 @@
 ﻿/*
- * Darry Chew
- * A0097797
+ * Group 14
+ * 
+ * Chew Chin Hao Darry (A0097797Y)
+ * Renaldy A W (A0082930H)
+ * Sng Ping Chiang (A0081115U)
+ * Yuen Shu Hui (A0098808L)
+ *
  * CS4211 - FORMAL METHODS FOR SOFTWARE ENGINEERING
  *
  * Restaurant Timed And Probability Model
@@ -121,7 +126,7 @@ var prob_cus_join_queue[3] = [1,1,1];
 // Defines a duration range that the customer may take to dine
 // in the resturant.
 //
-#define DETERMINISTIC true;
+#define DETERMINISTIC false;
 #define TIME_EATING_MIN 4;
 #define TIME_EATING_MAX 10;
 
@@ -328,7 +333,7 @@ Restaurant_No_Time_Target() = atomic
 #assert Restaurant() reaches goal_target_time with max( cus_served );
 
 //
-// Gets the maximum number of seats required with serving all customers in Targeted Units of Time.
+// Gets the minimum number of seats required with serving all customers in Targeted Units of Time.
 //
 #assert Restaurant() reaches goal_target_time with max( restaurant_seats_result );
 
