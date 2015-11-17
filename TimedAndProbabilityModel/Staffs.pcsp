@@ -43,6 +43,7 @@ if (queue.Count() > 0)
 				if( staff_has_job[i] == CALL_FREE )
 				{
 					staff_has_job[i] = CALL_QUEUE;
+					staff_has_been_activiated[i] = 1;
 					flag_found_staff = true;
 					
 					var cus = queue.First();
@@ -140,6 +141,7 @@ case {
 			serve_cus_seat 
 			{
 				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				staff_clocked_time[x] ++;
 				
 				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] <= 0) 
 				{
@@ -162,6 +164,7 @@ case {
 			serve_cus_bill 
 			{
 				staff_job_data[x][STAFF_JOB_DATA_DURATION] --;
+				staff_clocked_time[x] ++;
 				
 				if (staff_job_data[x][STAFF_JOB_DATA_DURATION] == 0) 
 				{

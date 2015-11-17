@@ -1,0 +1,96 @@
+﻿//
+// Chef Processes for
+// ChefModel.pcsp
+// 
+
+//
+// Chef Control Process
+// 
+// This is the main process that controls the flow of the chefs.
+//
+Chef_Control() = Check_Queue(); Call_chef();
+
+
+Check_Queue() = 
+if (queue.Count() > 0) 
+{
+	check_queue {
+		
+		var _has_free_chef = true;
+		
+		while ( queue.Count() > 0 && _has_free_chef )
+		{
+			var i = 1;
+			var flag_found_chef = false;
+			while( i < M+1 && !flag_found_chef ) 
+			{  
+				if( chef_has_job[i] == CALL_FREE )
+				{
+					chef_has_job[i] = CALL_QUEUE;
+					chef_has_been_activiated[i] = 1;
+					flag_found_chef = true;
+					
+					var ord = queue.First();
+					chef_job_data[i][CHEF_JOB_DATA_CUS_ID] = ord;
+					chef_job_data[i][CHEF_JOB_DATA_DURATION] = ord_duration_cook[i];
+					queue.Dequeue(); 
+					ord_pos[ord] = ORD_COOKING;
+					
+				}
+				i ++;
+			}
+			_has_free_chef = flag_found_chef;
+		}
+	} -> Skip()
+};
+
+
+//
+// Call Chef
+// 
+// Simulates the actions of the chef which will take time.
+//
+Call_chef() = Call_chef_Control();
+
+Call_chef_Control() = 
+if (call_chef_control_index <= M) 
+{
+	call_chef.call_chef_control_index
+	{
+		call_chef_control_index ++;
+	} -> Call_chef_Control2(call_chef_control_index-1)
+}
+else 
+{
+	call_chef_reset_index
+	{
+		call_chef_control_index = 1;
+	} -> Skip()
+};
+Call_chef_Control2(x) = Chef(x); Call_chef_Control();
+
+
+Chef(x) = 
+case {
+	
+	chef_has_job[x] == CALL_QUEUE:
+		if (chef_job_data[x][CHEF_JOB_DATA_CUS_ID] > 0) 
+		{
+			cook_order 
+			{
+				chef_job_data[x][CHEF_JOB_DATA_DURATION] --;
+				chef_clocked_time[x] ++;
+				
+				if (chef_job_data[x][CHEF_JOB_DATA_DURATION] <= 0) 
+				{
+					var cus = chef_job_data[x][0];
+					chef_job_data[x][CHEF_JOB_DATA_CUS_ID] = 0;
+					chef_job_data[x][CHEF_JOB_DATA_DURATION] = 0;
+					chef_has_job[x] = CALL_FREE;
+					ord_pos[cus] = ORD_SERVED;
+					
+					ord_served ++;
+				}
+			} -> Skip()
+		}
+};

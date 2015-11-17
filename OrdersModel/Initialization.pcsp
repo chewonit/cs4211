@@ -1,0 +1,56 @@
+﻿//
+// Initialization for
+// OrdersModel.pcsp
+// 
+Init() = initialization 
+	{
+		timer_exceeded = false;
+		served_all_orders = false;
+		
+		timer = 0;
+		ord_served = 0;
+		
+		chef_clock_time_max = 0;
+		chef_clock_time_min = 0;
+		chef_clock_time_avg = 0;
+		
+		redundancy_chef = REDUNDANT_CHECKING;
+		redundant_chef_count = 0;
+		
+		ord_queue_join_count = 0;
+		
+		queue.Clear();
+		
+		var i=1;
+		while( i <= M ) 
+		{
+			chef_has_job[i] = CALL_FREE;
+			chef_job_data[i][CHEF_JOB_DATA_CUS_ID] = 0;
+			chef_job_data[i][CHEF_JOB_DATA_DURATION] = 0;
+			chef_has_been_activiated[i] = 0;
+			chef_clocked_time[i] = 0;
+			i++;
+		}
+		
+		i = 1;
+		while( i <= N ) 
+		{
+			ord_pos[i] = ORD_IN_QUEUE;
+			
+			if (!first_run) 
+			{
+				var a = TIME_TO_COOK;
+				var b = TIME_TO_COOK;
+				if ( !DETERMINISTIC )
+				{
+					a = TIME_TO_COOK_MIN;
+					b = TIME_TO_COOK_MAX;
+				}
+				ord_duration_cook[i] = call(randomNumber, a, b);
+			}
+			i ++;
+		}
+		
+		first_run = true;		
+		
+	} -> Skip();

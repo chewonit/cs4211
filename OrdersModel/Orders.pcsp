@@ -1,0 +1,47 @@
+﻿//
+// Orders Processes for
+// OrdersModel.pcsp
+// 
+
+
+//
+// Order Join Queue
+// 
+// Simulates the orders joining the queue in 2, 3 or 4 orders
+// at a single point of time with the input probabilities by the user.
+//
+Ord_Join_Queue() = pcase 
+{
+	prob_ord_join_queue[0]: if ( ord_queue_count <= N ) 
+		{
+			ord_join_queue
+			{
+				ord_queue_join_count = 2;
+			} -> Ord_Join_Queue_2()
+		}
+		
+	prob_ord_join_queue[1]: if ( ord_queue_count <= N ) 
+		{
+			ord_join_queue
+			{
+				ord_queue_join_count = 3;
+			} -> Ord_Join_Queue_2()
+		}
+		
+	prob_ord_join_queue[2]: if ( ord_queue_count <= N ) 
+		{
+			ord_join_queue
+			{
+				ord_queue_join_count = 4;
+			} -> Ord_Join_Queue_2()
+		}
+};
+Ord_Join_Queue_2() = ord_join_queue
+{
+	while ( ord_queue_join_count > 0 && ord_queue_count <= N )
+	{
+		queue.Enqueue(ord_queue_count);
+		ord_queue_count ++;
+		ord_queue_join_count --;
+	}
+} -> Skip();

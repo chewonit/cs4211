@@ -1,0 +1,74 @@
+﻿//
+//=============================================================
+//==== Golbal Definitions for =================================
+//=============================================================
+//==== OrdersModel.pcsp =======================================
+//
+
+//
+//==== Golbal Timer Variable ==================================
+//
+var timer;
+
+//
+//==== Queue Simulations ======================================
+//
+var<Queue> queue;
+
+//
+//==== Order Positions ========================================
+//
+enum {
+	ORD_IN_QUEUE, 
+	ORD_COOKING,
+	ORD_SERVED
+};
+
+//
+//==== Order Variables ========================================
+//
+var ord_pos[N+1];
+var ord_duration_cook[N+1];
+
+//
+//==== Customer Queue Variables ===============================
+//
+var ord_queue_count = 1;
+var ord_queue_join_count = 0;
+
+//
+//==== Chef Call Events =======================================
+//
+enum {CALL_FREE, CALL_QUEUE};
+
+//
+//==== Chef Variables =========================================
+//
+#define CHEF_JOB_DATA_CUS_ID 0;
+#define CHEF_JOB_DATA_DURATION 1;
+
+var chef_has_job[M+1];
+var chef_job_data[M+1][2];
+var chef_has_been_activiated[M+1]; // Track activated chefs
+var chef_clocked_time[M+1]; // Track clock time of each chef
+var chef_clock_time_max = 0;
+var chef_clock_time_min = 0;
+var chef_clock_time_avg = 0;
+
+var call_chef_control_index = 1;
+
+enum {REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
+var redundancy_chef = REDUNDANT_CHECKING;
+var redundant_chef_count = 0;
+
+//
+//==== Number Of Orders Served ================================
+//
+var ord_served;
+
+//
+//==== Flags ==================================================
+//
+var timer_exceeded = false; //signal golbal timer exceeded TARGET_TIME
+var served_all_orders = false;
+var first_run = false;
