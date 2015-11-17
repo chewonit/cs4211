@@ -1,0 +1,214 @@
+﻿/*-=-=-=-=-=-=-=-=-=-=-=-=- System Variable -=-=-=-=-=-=-=-=-=-=-=-=-*/
+enum{REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NONE};
+var redundancy_menu = REDUNDANT_CHECKING;
+var redundancy_food = REDUNDANT_CHECKING;
+var redundant_menu_count = 0;
+var redundant_food_count = 0;
+var totalCost = costPerDay;
+var totalSales = 0;
+var order = -1;
+var day = 1;
+var sales;
+var customer;
+/*-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+
+/*-=-=-=-=-=-=-=-=-=-=-=- Configuration Variable -=-=-=-=-=-=-=-=-=-=-=-*/
+#define N 1000;		//No of Customer
+#define noOfDish 6;
+#define costPerDay 50;
+#define dayToRestock 2;
+
+enum{DishA, DishB, DishC, DishD, DishE, DishF};
+var price = [8, 9, 8, 10, 5, 3];
+var stock_arr = [5, 3, 7, 8, 15, 23];
+//var priceOfReStock = [2, 3, 2, 4, 2, 1];
+/*-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=- Mode Variable -=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+var stock_count_mode = true;
+var stock_day_mode = false;
+/*-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+
+/*-=-=-=-=-=-=-=-=-=-=-=-=-=- Flag Variable -=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+var out_of_stock = false;
+var stock[noOfDish];
+var food_has_been_ordered[noOfDish];
+var food_need_restock[noOfDish];
+/*-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-*/
+
+
+Init() = {
+	sales = 0;
+	customer = 0;
+	order = -1;
+	day = 1;
+	totalCost = costPerDay;
+	totalSales = 0;
+	out_of_stock = false;
+	
+	redundancy_menu = REDUNDANT_CHECKING;
+	redundancy_food = REDUNDANT_CHECKING;
+	redundant_menu_count = 0;
+	redundant_food_count = 0;
+	
+	stock_count_mode = true;
+	stock_day_mode = false;
+	
+	var i = 0;
+	while(i < noOfDish) {
+		food_need_restock[i] = 0;
+		food_has_been_ordered[i] = 0;
+		stock[i] = stock_arr[i];
+		i++;
+	}	
+}->Skip();
+
+Cus_System() = Init(); Cus_Process();
+
+Cus_Process() = Cus_Choose_Dish();
+	if((customer == N || sales > costPerDay) && stock_count_mode == false) 
+	{	
+		check_redundant_menu {
+			var i =0;
+			var has_redundant_menu = false;
+			
+			while (i < noOfDish) {
+				if( food_has_been_ordered [i] == 0)
+				{
+					if(!has_redundant_menu)
+					{
+						has_redundant_menu = true;
+					}
+					redundant_menu_count++;
+				}
+				i++;
+			}
+			
+			if(has_redundant_menu)
+			{
+				redundancy_menu = REDUNDANT;
+			}
+			else 
+			{
+				redundancy_menu = REDUNDANT_NONE;
+			}
+		}
+		->Cus_System()
+	}
+	else if(stock_count_mode) {
+		if(sales>costPerDay && day < dayToRestock) 
+		{
+			increase_day{
+				day++;
+				totalSales = totalSales + sales;
+				sales = 0;
+			}->Cus_Process()
+		}
+		else if(day>= dayToRestock){
+			check_food_stock{
+				var i = 0;
+				var has_redundant_food = false;
+				
+				while(i<noOfDish) {
+					if(food_need_restock[i] == 0) {
+						if(!has_redundant_food) {
+							has_redundant_food = true;
+						}
+						redundant_menu_count++;
+					}
+					i++;
+				}
+				
+				if(has_redundant_food) {
+					redundancy_food = REDUNDANT;
+				}
+				else {
+					redundancy_food = REDUNDANT_NONE;
+				}
+			}->Cus_System()
+			//do some checking here
+		}
+		else {
+			Cus_Process()
+		}
+	}
+	else
+	{
+		Cus_Process()
+	};
+	
+Cus_Choose_Dish() = Check_Stock(); Customer(); MakeOrder(order);
+
+Check_Stock() = {
+	var i = 0;
+	while(i < noOfDish) {
+		if(stock[i] == 0 && stock_count_mode == false) {
+			out_of_stock = true;
+		}
+		else if(stock[i] == 0 && stock_count_mode == true) {
+			food_need_restock[i]++;
+		}
+		i++;
+	}
+}->Skip();
+
+Customer() = pcase {
+       10 : cus.DishA{order = DishA} -> Skip
+       8 : cus.DishB{order = DishB} -> Skip
+       10 : cus.DishC{order = DishC} -> Skip
+       7 : cus.DishD{order = DishD} -> Skip
+       5 : cus.DishE{order = DishE} -> Skip
+       3 : cus.DishF{order = DishF} -> Skip
+};
+
+MakeOrder(dish) = {
+		sales = sales + price[dish];
+		stock[dish] = stock[dish] - 1;
+		food_has_been_ordered[dish]++;
+		customer++;
+}->Skip();
+
+
+#define goal sales > costPerDay;
+#define goal_no_redundant_menu (redundancy_menu == REDUNDANT_NONE && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay); 
+#define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && sales > costPerDay);
+#define goal_no_out_of_stock (out_of_stock == false && sales > costPerDay);
+#define goal_reach_out_of_stock (out_of_stock == true && sales < costPerDay);
+
+#define mode2_goal_no_out_of_stock(redundancy_food == REDUNDANT);
+#define mode2_goal_reach_out_of_stock(redundancy_food == REDUNDANT_NONE);
+
+
+#assert Cus_System() deadlockfree;
+
+#assert Cus_System() reaches goal_no_redundant_menu;
+#assert Cus_System() reaches goal_no_redundant_menu with min (customer);
+
+#assert Cus_System() reaches goal_redundant_menu;
+#assert Cus_System() reaches goal_redundant_menu with min (customer);
+#assert Cus_System() reaches goal_redundant_menu with min (redundant_menu_count);
+
+#assert Cus_System() reaches goal_no_out_of_stock;
+#assert Cus_System() reaches goal_no_out_of_stock with min(redundant_menu_count);
+#assert Cus_System() reaches goal_no_out_of_stock with max(redundant_menu_count);
+
+#assert Cus_System() reaches goal_reach_out_of_stock;
+#assert Cus_System() reaches goal_reach_out_of_stock with max (sales);
+#assert Cus_System() reaches goal_reach_out_of_stock with max (redundant_menu_count);
+
+
+#assert Cus_System() reaches goal;
+#assert Cus_System() reaches goal with min(redundant_menu_count);
+#assert Cus_System() reaches goal with max(redundant_menu_count);
+#assert Cus_System() reaches goal with min(customer);
+
+#assert Cus_System() reaches mode2_goal_no_out_of_stock;
+#assert Cus_System() reaches mode2_goal_no_out_of_stock with min(totalSales);
+#assert Cus_System() reaches mode2_goal_no_out_of_stock with max(totalSales);
+
+#assert Cus_System() reaches mode2_goal_reach_out_of_stock;
+#assert Cus_System() reaches mode2_goal_reach_out_of_stock with min(totalSales);
+#assert Cus_System() reaches mode2_goal_reach_out_of_stock with max(totalSales);
