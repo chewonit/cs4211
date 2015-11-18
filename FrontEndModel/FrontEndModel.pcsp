@@ -8,12 +8,13 @@
  *
  * CS4211 - FORMAL METHODS FOR SOFTWARE ENGINEERING
  *
- * Restaurant Timed And Probability Model
+ * Front End Model
  * -- With non-deterministic features
  *
  * Dependencies: Custom RandomNumber Library
  * 
- * Simulating queuing -> sitting -> eating -> paying -> leaving
+ * Simulating the journey of a customer through the resturant.
+ * Generally queuing -> sitting -> eating -> paying -> leaving
  *
  * Simulates multiple customers 
  * joining the queue / eating / requesting for bill
