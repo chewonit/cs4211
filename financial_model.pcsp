@@ -137,7 +137,6 @@ MakeOrder(dish) = {
 #define goal_reach_out_of_stock (out_of_stock == true && sales < costPerDay);
 
 
-
 #assert Cus_System() deadlockfree;
 
 #assert Cus_System() reaches goal_no_redundant_menu;
@@ -163,6 +162,4 @@ MakeOrder(dish) = {
 
 #assert Cus_System() reaches targetSalesGoal;
 #assert Cus_System() reaches targetSalesGoal with min(customer);
-#assert Cus_System() reaches targetSalesGoal with max(customer);
 #assert Cus_System() reaches targetSalesGoal with min(sales);
-#assert Cus_System() reaches targetSalesGoal with max(sales);
