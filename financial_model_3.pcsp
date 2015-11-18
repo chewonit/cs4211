@@ -1,0 +1,167 @@
+﻿enum{REDUNDANT_CHECKING, REDUNDANT, REDUNDANT_NO};
+var redundancy_menu = REDUNDANT_CHECKING;
+var redundant_menu_count = 0;
+
+
+enum{DishA, DishB, DishC, DishD, DishE, DishF};
+var price = [5, 4, 3, 3, 5, 4];
+var stock[noOfDish];
+var stock_arr = [5, 3, 7, 5, 10, 13];
+var priceOfReStock = [2, 1, 2, 3, 2, 1];
+var out_of_stock = false;
+
+
+#define N 50;
+#define amount_to_stock 7; // minimum is 6
+#define noOfDish 6;
+#define targetSales 50;
+#define labourCost 10;
+#define foodStockCost 10;
+var costPerDay = 0;
+
+
+var pos = -1;
+var order = -1;
+var sales = 0;
+var customer = 0;
+var food_has_been_ordered[noOfDish];
+
+Init() = {
+	pos = -1;
+	sales = 0;
+	customer = 0;
+	order = -1;
+	out_of_stock = false;
+	
+	redundancy_menu = REDUNDANT_CHECKING;
+	redundant_menu_count = 0;
+	costPerDay = labourCost + foodStockCost;
+	
+	var i = 0;
+	while(i < noOfDish) {
+		food_has_been_ordered[i] = 0;
+		stock[i] = amount_to_stock;
+		//costPerDay = costPerDay + (priceOfReStock[i] * stock[i]);
+		i++;
+	}
+	
+	
+}->Skip();
+
+
+Cus_System() = Init(); Cus_Process();
+
+Cus_Process() = Cus_Choose_Dish();
+	if(customer == N || out_of_stock == true)// || sales > targetSales) 
+	{
+		check_redundant_menu {
+			var i =0;
+			var has_redundant_menu = false;
+			
+			while (i < noOfDish) {
+				if( food_has_been_ordered [i] == 0)
+				{
+					if(!has_redundant_menu)
+					{
+						has_redundant_menu = true;
+					}
+					redundant_menu_count++;
+				}
+				i++;
+			}
+			
+			if(has_redundant_menu)
+			{
+				redundancy_menu = REDUNDANT;
+			}
+			else 
+			{
+				redundancy_menu = REDUNDANT_NO;
+			}
+		}
+		->Cus_System()
+	}
+	else
+	{
+		Cus_Process()
+	};
+	
+Cus_Choose_Dish() = Check_Stock(); Customer(); MakeOrder(order);
+
+Check_Stock() = {
+	var i = 0;
+	while(i < noOfDish) {
+		if(stock[i] == 0) {
+			out_of_stock = true;
+			//stock[i] = stock[i] + amount_to_restock;
+			//costPerDay = costPerDay + (priceOfReStock[i] * amount_to_restock);
+		}
+		i++;
+	}
+}->Skip();
+
+Customer() = pcase {
+       10 : cus.DishA{order = DishA} -> Skip
+       8 : cus.DishB{order = DishB} -> Skip
+       10 : cus.DishC{order = DishC} -> Skip
+       7 : cus.DishD{order = DishD} -> Skip
+       5 : cus.DishE{order = DishE} -> Skip
+       3 : cus.DishF{order = DishF} -> Skip
+};
+
+MakeOrder(dish) = {
+	sales = sales + price[dish];
+	stock[dish] = stock[dish] - 1;
+	food_has_been_ordered[dish]++;
+	customer++;
+}->Skip();
+
+
+#define breakeven sales > costPerDay;
+#define targetSalesGoal sales >= targetSales;
+#define NO_OutOfStock (out_of_stock == false);
+#define OutOfStock (out_of_stock == true);
+#define goal_no_redundant_menu (redundancy_menu == REDUNDANT_NO && redundancy_menu != REDUNDANT_CHECKING && breakeven); 
+#define goal_redundant_menu (redundancy_menu == REDUNDANT && redundancy_menu != REDUNDANT_CHECKING && breakeven);
+#define goal_no_out_of_stock (NO_OutOfStock && breakeven);
+#define goal_reach_out_of_stock (OutOfStock && sales < costPerDay);
+
+#define targetSalesGoal_no_out_of_stock (NO_OutOfStock && targetSalesGoal);
+#define targetSalesGoal_reach_out_of_stock (OutOfStock && sales >= targetSales);
+
+
+#assert Cus_System() deadlockfree;
+
+#assert Cus_System() reaches breakeven;
+#assert Cus_System() reaches breakeven with min(redundant_menu_count);
+#assert Cus_System() reaches breakeven with max(redundant_menu_count);
+#assert Cus_System() reaches breakeven with min(customer);
+
+#assert Cus_System() reaches goal_no_redundant_menu;
+#assert Cus_System() reaches goal_no_redundant_menu with min (customer);
+
+#assert Cus_System() reaches goal_redundant_menu;
+#assert Cus_System() reaches goal_redundant_menu with min (customer);
+#assert Cus_System() reaches goal_redundant_menu with min (redundant_menu_count);
+
+#assert Cus_System() reaches goal_no_out_of_stock;
+#assert Cus_System() reaches goal_no_out_of_stock with min(redundant_menu_count);
+#assert Cus_System() reaches goal_no_out_of_stock with max(redundant_menu_count);
+
+#assert Cus_System() reaches goal_reach_out_of_stock;
+#assert Cus_System() reaches goal_reach_out_of_stock with max (sales);
+#assert Cus_System() reaches goal_reach_out_of_stock with max (redundant_menu_count);
+
+#assert Cus_System() reaches goal_no_out_of_stock with min(customer);
+#assert Cus_System() reaches goal_no_out_of_stock with max(customer);
+
+#assert Cus_System() reaches targetSalesGoal;
+#assert Cus_System() reaches targetSalesGoal with min(customer);
+#assert Cus_System() reaches targetSalesGoal with min(sales);
+
+#assert Cus_System() reaches targetSalesGoal_no_out_of_stock;
+#assert Cus_System() reaches targetSalesGoal_no_out_of_stock with min (customer);
+#assert Cus_System() reaches targetSalesGoal_reach_out_of_stock;	// this one should return invalid
+
+#assert Cus_System() reaches NO_OutOfStock with max(sales);
+#assert Cus_System() reaches NO_OutOfStock with max(customer);
